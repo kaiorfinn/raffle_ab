@@ -1,1 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legacy of Panalo - Raffle Entry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-JYHE2JKQNV"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-JYHE2JKQNV');
+    </script>
+    
+    <style>
+        /* --- THEME CONFIGURATION --- */
+        :root {
+            --neon-green: #39ff14;
+            --neon-dark: #00aa00;
+        }
+        .text-neon { color: var(--neon-green); }
+        .bg-neon { background-color: var(--neon-green); }
+        .border-neon { border-color: var(--neon-green); }
+        
+        /* Neon Glow Effects */
+        .neon-shadow {
+            box-shadow: 0 0 10px var(--neon-green), 0 0 20px rgba(57, 255, 20, 0.4);
+        }
+        .neon-text-shadow {
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+        
+        .hover\:bg-neon-dark:hover { background-color: var(--neon-dark); }
+        .focus\:ring-neon:focus { --tw-ring-color: var(--neon-green); }
+
+        /* Loader Animation */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #39ff14;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-black flex items-center justify-center h-screen font-sans bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+
+    <div class="bg-gray-900 p-8 rounded-xl shadow-2xl w-96 border-2 border-neon neon-shadow relative overflow-hidden">
+        <!-- decorative glow blob -->
+        <div class="absolute top-0 left-0 w-full h-2 bg-neon shadow-[0_0_20px_#39ff14]"></div>
+
+        <h2 id="form-title" class="text-3xl font-black mb-6 text-center text-white italic tracking-wider neon-text-shadow">RAFFLE ENTRY</h2>
+        
+        <!-- Toggle Buttons -->
+        <div class="flex mb-6 bg-black p-1 rounded border border-gray-700">
+            <button id="tab-register" class="w-1/2 py-2 font-bold text-neon rounded-l transition-colors duration-200 bg-gray-900 border-r border-gray-700">REGISTER</button>
+            <button id="tab-login" class="w-1/2 py-2 font-bold text-gray-500 rounded-r transition-colors duration-200 bg-black hover:text-neon">LOGIN</button>
+        </div>
+
+        <!-- Form -->
+        <form id="main-form" onsubmit="event.preventDefault(); handleFormSubmit();">
+            <!-- Hidden input to track form type -->
+            <input type="hidden" id="form-type" value="register">
+
+            <div class="space-y-5">
+                <div id="name-field">
+                    <label class="block text-sm font-bold text-neon mb-1 tracking-wide">FULL NAME</label>
+                    <input type="text" id="full-name" placeholder="Juan dela Cruz" class="w-full p-3 bg-gray-800 text-white border border-gray-600 rounded focus:ring-2 focus:ring-neon focus:border-transparent outline-none transition font-bold placeholder-gray-500" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-neon mb-1 tracking-wide">PHONE NUMBER</label>
+                    <div class="flex">
+                        <span class="inline-flex items-center px-3 text-lg text-black bg-neon border border-neon rounded-l-md font-bold">
+                            +63
+                        </span>
+                        <input type="tel" id="phone" placeholder="912 345 6789" pattern="[0-9]{10}" class="flex-1 w-full p-3 bg-gray-800 text-white border border-gray-600 rounded-r-md focus:ring-2 focus:ring-neon focus:border-transparent outline-none transition font-bold placeholder-gray-500" required>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">*Enter 10 digits (e.g., 9171234567)</p>
+                </div>
+            </div>
+            
+            <button type="submit" id="btn-submit" class="w-full bg-neon text-black font-black text-xl p-3 rounded mt-8 hover:bg-white hover:shadow-[0_0_15px_#39ff14] transition-all duration-300 transform active:scale-95 uppercase tracking-widest flex justify-center items-center gap-2">
+                <span>SUBMIT ENTRY</span>
+            </button>
+        </form>
+        
+        <div id="status-container" class="mt-4 text-center hidden">
+             <p id="status-msg" class="text-sm font-bold text-white"></p>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTPlvTPZhJvDIKbRoI8gVFJqac_MzXZyBOFf4izeBZ-gipzCif2QCsGiEsH4LHaqciKw/exec";
+
+        // --- UI ELEMENTS ---
+        const tabLogin = document.getElementById('tab-login');
+        const tabRegister = document.getElementById('tab-register');
+        const btnSubmit = document.getElementById('btn-submit');
+        const formType = document.getElementById('form-type');
+        const statusMsg = document.getElementById('status-msg');
+        const statusContainer = document.getElementById('status-container');
+        const nameField = document.getElementById('name-field');
+        const fullNameInput = document.getElementById('full-name');
+        const phoneInput = document.getElementById('phone');
+        const formTitle = document.getElementById('form-title');
+
+        // --- TABS LOGIC ---
+        const activeClass = ['text-neon', 'bg-gray-900'];
+        const inactiveClass = ['text-gray-500', 'bg-black'];
+
+        function switchToRegister() {
+            tabRegister.classList.add(...activeClass);
+            tabRegister.classList.remove('text-gray-500', 'bg-black');
+            tabLogin.classList.add('text-gray-500', 'bg-black');
+            tabLogin.classList.remove('text-neon', 'bg-gray-900');
+            
+            formTitle.innerText = "RAFFLE ENTRY";
+            btnSubmit.querySelector('span').innerText = "SUBMIT ENTRY";
+            formType.value = "register";
+            nameField.style.display = "block";
+            fullNameInput.setAttribute("required", "");
+            clearStatus();
+        }
+
+        function switchToLogin() {
+            tabLogin.classList.add(...activeClass);
+            tabLogin.classList.remove('text-gray-500', 'bg-black');
+            tabRegister.classList.add('text-gray-500', 'bg-black');
+            tabRegister.classList.remove('text-neon', 'bg-gray-900');
+            
+            formTitle.innerText = "CHECK ENTRY";
+            btnSubmit.querySelector('span').innerText = "CHECK DETAILS";
+            formType.value = "login";
+            nameField.style.display = "none";
+            fullNameInput.removeAttribute("required");
+            clearStatus();
+        }
+
+        tabRegister.addEventListener('click', switchToRegister);
+        tabLogin.addEventListener('click', switchToLogin);
+
+        // --- BACKEND CONNECTION ---
+        function handleFormSubmit() {
+            const mode = formType.value;
+            const phone = "63" + phoneInput.value; 
+            const name = fullNameInput.value;
+            
+            setLoading(true);
+
+            // Prepare Payload
+            const payload = {
+                action: mode,
+                phone: phone,
+                name: mode === 'register' ? name : null
+            };
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                setLoading(false);
+                if (data.result === 'success') {
+                    if (mode === 'register') {
+                        // --- TRACKING: REGISTRATION ---
+                        if (typeof gtag === 'function') {
+                            gtag('event', 'sign_up', {
+                                'method': 'Google Sheet',
+                                'description': 'User successfully registered'
+                            });
+                        }
+                        
+                        showStatus("✅ Registration Successful!", "text-green-400");
+                        document.getElementById('main-form').reset();
+                    } else {
+                        // --- TRACKING: LOGIN ---
+                        if (typeof gtag === 'function') {
+                            gtag('event', 'login', {
+                                'method': 'Phone',
+                                'description': 'User checked entry'
+                            });
+                        }
+
+                        showStatus(`👋 Entry Found: ${data.data.name}`, "text-neon");
+                    }
+                } else {
+                    showStatus("❌ " + data.message, "text-red-500");
+                }
+            })
+            .catch(error => {
+                setLoading(false);
+                showStatus("⚠️ Connection Error. Check Sheet Permissions.", "text-red-500");
+                console.error('Error:', error);
+            });
+        }
+
+        // --- UTILS ---
+        function setLoading(isLoading) {
+            const span = btnSubmit.querySelector('span');
+            if (isLoading) {
+                span.style.display = 'none';
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<div class="loader"></div>';
+            } else {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = `<span>${formType.value === 'register' ? 'SUBMIT ENTRY' : 'CHECK DETAILS'}</span>`;
+            }
+        }
+
+        function showStatus(msg, colorClass) {
+            statusContainer.classList.remove('hidden');
+            statusMsg.className = `text-sm font-bold ${colorClass}`;
+            statusMsg.innerText = msg;
+        }
+
+        function clearStatus() {
+            statusContainer.classList.add('hidden');
+            statusMsg.innerText = "";
+        }
+
+        // Init
+        switchToRegister();
+    </script>
+</body>
+</html>
