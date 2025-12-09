@@ -6,13 +6,12 @@
     <title>Legacy of Panalo - Raffle Entry</title>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google tag (gtag.js) -->
+    <!-- 1. GOOGLE ANALYTICS -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-JYHE2JKQNV"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-JYHE2JKQNV');
     </script>
     
@@ -53,20 +52,16 @@
 <body class="bg-black flex items-center justify-center h-screen font-sans bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
 
     <div class="bg-gray-900 p-8 rounded-xl shadow-2xl w-96 border-2 border-neon neon-shadow relative overflow-hidden">
-        <!-- decorative glow blob -->
         <div class="absolute top-0 left-0 w-full h-2 bg-neon shadow-[0_0_20px_#39ff14]"></div>
 
         <h2 id="form-title" class="text-3xl font-black mb-6 text-center text-white italic tracking-wider neon-text-shadow">RAFFLE ENTRY</h2>
         
-        <!-- Toggle Buttons -->
         <div class="flex mb-6 bg-black p-1 rounded border border-gray-700">
             <button id="tab-register" class="w-1/2 py-2 font-bold text-neon rounded-l transition-colors duration-200 bg-gray-900 border-r border-gray-700">REGISTER</button>
             <button id="tab-login" class="w-1/2 py-2 font-bold text-gray-500 rounded-r transition-colors duration-200 bg-black hover:text-neon">LOGIN</button>
         </div>
 
-        <!-- Form -->
         <form id="main-form" onsubmit="event.preventDefault(); handleFormSubmit();">
-            <!-- Hidden input to track form type -->
             <input type="hidden" id="form-type" value="register">
 
             <div class="space-y-5">
@@ -100,6 +95,11 @@
     <script>
         // --- CONFIGURATION ---
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzTPlvTPZhJvDIKbRoI8gVFJqac_MzXZyBOFf4izeBZ-gipzCif2QCsGiEsH4LHaqciKw/exec";
+        
+        // --- ALANBASE CONFIGURATION ---
+        // IMPORTANT: Replace with your actual domain from Alanbase (e.g. https://yourbrand.postback.alanbase.com)
+        const ALANBASE_DOMAIN = ""; 
+        const ALANBASE_GOAL = "registration"; 
 
         // --- UI ELEMENTS ---
         const tabLogin = document.getElementById('tab-login');
@@ -113,16 +113,33 @@
         const phoneInput = document.getElementById('phone');
         const formTitle = document.getElementById('form-title');
 
+        // --- TRACKING LOGIC ---
+        // 1. Capture click_id on page load (From URL or Storage)
+        const getUrlParameter = (name) => {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        };
+
+        let currentClickId = getUrlParameter('click_id') || getUrlParameter('click') || getUrlParameter('clickid');
+        
+        if (currentClickId) {
+            localStorage.setItem('alanbase_click_id', currentClickId);
+            console.log("Captured Click ID:", currentClickId);
+        } else {
+            currentClickId = localStorage.getItem('alanbase_click_id');
+            if(currentClickId) console.log("Retrieved Click ID from Storage:", currentClickId);
+        }
+
         // --- TABS LOGIC ---
         const activeClass = ['text-neon', 'bg-gray-900'];
-        const inactiveClass = ['text-gray-500', 'bg-black'];
 
         function switchToRegister() {
             tabRegister.classList.add(...activeClass);
             tabRegister.classList.remove('text-gray-500', 'bg-black');
             tabLogin.classList.add('text-gray-500', 'bg-black');
             tabLogin.classList.remove('text-neon', 'bg-gray-900');
-            
             formTitle.innerText = "RAFFLE ENTRY";
             btnSubmit.querySelector('span').innerText = "SUBMIT ENTRY";
             formType.value = "register";
@@ -136,7 +153,6 @@
             tabLogin.classList.remove('text-gray-500', 'bg-black');
             tabRegister.classList.add('text-gray-500', 'bg-black');
             tabRegister.classList.remove('text-neon', 'bg-gray-900');
-            
             formTitle.innerText = "CHECK ENTRY";
             btnSubmit.querySelector('span').innerText = "CHECK DETAILS";
             formType.value = "login";
@@ -153,14 +169,18 @@
             const mode = formType.value;
             const phone = "63" + phoneInput.value; 
             const name = fullNameInput.value;
+            // Generate unique TID (Transaction ID) as per Alanbase Guide Page 8
+            const tid = Date.now().toString(); 
             
             setLoading(true);
 
-            // Prepare Payload
+            // Payload for Google Sheet
             const payload = {
                 action: mode,
                 phone: phone,
-                name: mode === 'register' ? name : null
+                name: mode === 'register' ? name : null,
+                click_id: currentClickId,
+                tid: tid
             };
 
             fetch(SCRIPT_URL, {
@@ -172,29 +192,33 @@
                 setLoading(false);
                 if (data.result === 'success') {
                     if (mode === 'register') {
-                        // --- TRACKING: REGISTRATION ---
+                        // 1. GOOGLE ANALYTICS
                         if (typeof gtag === 'function') {
-                            gtag('event', 'sign_up', {
-                                'method': 'Google Sheet',
-                                'description': 'User successfully registered'
-                            });
+                            gtag('event', 'sign_up', { 'method': 'Google Sheet' });
+                        }
+
+                        // 2. ALANBASE POSTBACK (Goal Implementation)
+                        // Guide Page 11: GET request with goal, click_id, and tid
+                        if (ALANBASE_DOMAIN && currentClickId) {
+                            const postbackUrl = `${ALANBASE_DOMAIN}?click_id=${currentClickId}&goal=${ALANBASE_GOAL}&tid=${tid}&status=confirmed`;
+                            
+                            // Send GET request (Fire and Forget)
+                            fetch(postbackUrl, { method: 'GET', mode: 'no-cors' })
+                                .then(() => console.log('Alanbase Goal Sent:', postbackUrl))
+                                .catch(err => console.error('Alanbase Error:', err));
+                        } else {
+                            console.log("Skipping Alanbase: Missing Domain or click_id");
                         }
                         
                         showStatus("✅ Registration Successful!", "text-green-400");
                         document.getElementById('main-form').reset();
                     } else {
-                        // --- TRACKING: LOGIN ---
+                        // LOGIN SUCCESS
                         if (typeof gtag === 'function') {
-                            gtag('event', 'login', {
-                                'method': 'Phone',
-                                'description': 'User checked entry'
-                            });
+                            gtag('event', 'login', { 'method': 'Phone' });
                         }
-
-                        // Format timestamp
                         const dateObj = new Date(data.data.timestamp);
                         const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-
                         showStatus(`👋 Entry Found: ${data.data.name}<br><span class="text-xs font-normal text-gray-400">Registered: ${dateStr}</span>`, "text-neon");
                     }
                 } else {
@@ -203,7 +227,7 @@
             })
             .catch(error => {
                 setLoading(false);
-                showStatus("⚠️ Connection Error. Check Sheet Permissions.", "text-red-500");
+                showStatus("⚠️ Connection Error.", "text-red-500");
                 console.error('Error:', error);
             });
         }
@@ -220,13 +244,11 @@
                 btnSubmit.innerHTML = `<span>${formType.value === 'register' ? 'SUBMIT ENTRY' : 'CHECK DETAILS'}</span>`;
             }
         }
-
         function showStatus(msg, colorClass) {
             statusContainer.classList.remove('hidden');
             statusMsg.className = `text-sm font-bold ${colorClass}`;
             statusMsg.innerHTML = msg;
         }
-
         function clearStatus() {
             statusContainer.classList.add('hidden');
             statusMsg.innerText = "";
