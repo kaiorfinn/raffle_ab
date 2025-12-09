@@ -191,7 +191,11 @@
                             });
                         }
 
-                        showStatus(`👋 Entry Found: ${data.data.name}`, "text-neon");
+                        // Format timestamp
+                        const dateObj = new Date(data.data.timestamp);
+                        const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                        showStatus(`👋 Entry Found: ${data.data.name}<br><span class="text-xs font-normal text-gray-400">Registered: ${dateStr}</span>`, "text-neon");
                     }
                 } else {
                     showStatus("❌ " + data.message, "text-red-500");
@@ -220,7 +224,7 @@
         function showStatus(msg, colorClass) {
             statusContainer.classList.remove('hidden');
             statusMsg.className = `text-sm font-bold ${colorClass}`;
-            statusMsg.innerText = msg;
+            statusMsg.innerHTML = msg;
         }
 
         function clearStatus() {
